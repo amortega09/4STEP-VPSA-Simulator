@@ -5,9 +5,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import joblib
 import pandas as pd 
-from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, r2_score
 
 
 inputs = pd.read_excel('inputs_all.xlsx')
@@ -76,115 +74,39 @@ class MCPytorchNN(nn.Module):
     def enable_mc_dropout(self):
         self.mc_dropout = True
 
-# performs multiple forward passes through the model with dropout enabled generating a distribution of predictions for the data in the loader
-def predictions_with_uncertainties(model, data_loader, n_samples=100):
-    model.eval()
-    model.enable_mc_dropout()
-    predictions = []
-    with torch.no_grad():
-        for _ in range(n_samples):
-            predicts = []
-            for X_batch, _ in data_loader:
-                y_preds = model(X_batch)
-                predicts.append(y_preds.numpy())
-            predictions.append(np.vstack(predicts))
-    predictions = np.stack(predictions)
-    mean_predictions = np.mean(predictions, axis = 0) #point predictions
-    std_predictions = np.std(predictions, axis = 0) # epistemic uncertainty
-    return mean_predictions, std_predictions
 
+#----------------------------------------#
+#Training the final model on full dataset to improve accuracy #
+#----------------------------------------#
 
 #parameters found through bayesian optimisation using optuna
 best_params = {'hidden_dim': 57,'lr': 0.00026871333611041425, 'dropout_rate': 0.12757236756343715,'batch_size': 16}
 
+# create dataset and dataloader from full data
+full_dataset = NNDataset(X_scaled, y_scaled)
+full_loader = DataLoader(full_dataset, batch_size=best_params['batch_size'], shuffle=True)
 
-r2_scores = []
-mean_squared_error_scores = []
-k_fold = KFold(n_splits=5, shuffle=True,random_state=1)
+model = MCPytorchNN(
+    input_dim=X_scaled.shape[1],
+    output_dim=y_scaled.shape[1],
+    hidden_dim=best_params['hidden_dim'],
+    dropout_rate=best_params['dropout_rate']
+)
 
+optimizer = optim.Adam(model.parameters(), lr=best_params['lr'])
 
-#outer loop is for cross validation, to validate model performance more robustly
-for fold, (train_index, val_index) in enumerate(k_fold.split(X_scaled)):
-    X_train_cv, X_val_cv = X_scaled.iloc[train_index], X_scaled.iloc[val_index]
-    y_train_cv, y_val_cv = y_scaled.iloc[train_index], y_scaled.iloc[val_index]
-    train_dataset = NNDataset(X_train_cv, y_train_cv)
-    validation_dataset = NNDataset(X_val_cv,y_val_cv)
-    train_loader = DataLoader(train_dataset, batch_size=best_params['batch_size'], shuffle=True)#shuffling for training
-    validation_loader = DataLoader(validation_dataset,batch_size=best_params['batch_size'], shuffle=False) #no shuffle for testing
+#train on full data
+num_epochs = 300
+for epoch in range(num_epochs):
+    model.train()
+    for X_batch, y_batch in full_loader:
+        y_predict = model(X_batch)
+        loss = model.loss_function(y_predict, y_batch)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-    model = MCPytorchNN(input_dim=X_train_cv.shape[1], output_dim=y_train_cv.shape[1],hidden_dim=best_params['hidden_dim'],dropout_rate=best_params['dropout_rate'])
-    optimizer = optim.Adam(model.parameters(), lr = best_params['lr'])
-    best_validation_loss = float('inf') #initiates the validation loss at infinity
-    patience = 20
-    patience_tracker = 0 # keepsing track of how many epochs have passed without improvement in the validation loss
-    num_epochs = 300
+# save final trained model
+torch.save(model.state_dict(), "final_model.pt")
 
-    #training loop
-    for epoch in range(num_epochs):
-        model.train()
-        for X_batch, y_batch in train_loader:
-            y_predict = model(X_batch)
-            loss = model.loss_function(y_predict, y_batch)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        #early stopping validation
-        model.eval()
-        validation_predictions = []
-        validation_true = []
-        with torch.no_grad():
-            for X_batch, y_batch in validation_loader:
-                y_predict = model(X_batch)
-                validation_predictions.append(y_predict.numpy())
-                validation_true.append(y_batch.numpy())
-
-        y_pred_val = np.vstack(validation_predictions)
-        y_true_val = np.vstack(validation_true)
-
-        y_pred_val_orig = y_scaler.inverse_transform(y_pred_val)
-        y_true_val_orig = y_scaler.inverse_transform(y_true_val)
-
-        val_loss = mean_squared_error(y_true_val_orig, y_pred_val_orig)
-
-        if val_loss < best_validation_loss:
-            best_validation_loss = val_loss
-            patience_counter = 0
-
-            #save model checkpoint for this fold
-            model_path = f"model_fold_{fold + 1}.pt"
-            torch.save(model.state_dict(), model_path)
-        else:
-            patience_counter += 1
-            if patience_counter >= patience:
-                break
-
-    #final model eval using MC dropout
-    mc_preds, _ = predictions_with_uncertainties(model, validation_loader, n_samples=20)
-    y_val_true = np.vstack([y.numpy() for _, y in validation_loader])
-
-    y_val_pred_orig = y_scaler.inverse_transform(mc_preds)
-    y_val_true_orig = y_scaler.inverse_transform(y_val_true)
-
-    fold_mse = mean_squared_error(y_val_true_orig, y_val_pred_orig)
-    fold_r2 = r2_score(y_val_true_orig, y_val_pred_orig)
-
-    mean_squared_error_scores.append(fold_mse)
-    r2_scores.append(fold_r2)
-
-    print(f"  Fold MSE: {fold_mse:.4f}, Fold R²: {fold_r2:.4f}")
-
-#-------------------------------------------------------------------------------------------#
-
-#final evaluation
-mean_mse = np.mean(mean_squared_error_scores)
-mean_r2 = np.mean(r2_scores)
-
-print("\nFinal Cross-Validated Performance:")
-print(f"  Mean MSE: {mean_mse:.4f}")
-print(f"  Mean R²: {mean_r2:.4f}")
-
-
-
-
-
+print("Final model trained on full dataset and saved as 'final_model.pt'")
