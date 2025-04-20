@@ -2,3 +2,4 @@ torch
 streamlit
 pandas
 numpy
+joblib
