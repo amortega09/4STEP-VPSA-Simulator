@@ -202,11 +202,11 @@ The VPSA system is based on **Zeochem Zeolite 13X**, a robust and selective adso
 
 with st.expander("🧮 Model Information"):
     st.markdown("""
-    1.The feed mixture consists of 15 mol% CO₂ and 85 mol% N₂.
-    2.The feed pressurisation step was carried out over a fixed duration of 20 seconds.
-    3.Isotherm parameters for Zeolite 13X were sourced from the study by R. Haghpanah et al. [1].    
-    4.The model was trained on data generated using a mathematical simulation.
-    5.The neural network was implemented in PyTorch, with Monte Carlo dropout employed for uncertainty estimation.
+    1. The feed mixture consists of 15 mol% CO₂ and 85 mol% N₂.
+    2. The feed pressurisation step was carried out over a fixed duration of 20 seconds.
+    3. Isotherm parameters for Zeolite 13X were sourced from the study by R. Haghpanah et al. [1].    
+    4. The model was trained on data generated using a mathematical simulation.
+    5. The neural network was implemented in PyTorch, with Monte Carlo dropout employed for uncertainty estimation.
     """)
 
 # --------------------------
