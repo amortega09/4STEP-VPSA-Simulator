@@ -207,6 +207,7 @@ with st.expander("🧮 Model Information"):
     3. Isotherm parameters for Zeolite 13X were sourced from the study by R. Haghpanah et al. [1].    
     4. The model was trained on data generated using a mathematical simulation.
     5. The neural network was implemented in PyTorch, with Monte Carlo dropout employed for uncertainty estimation.
+    6. The surrogate model achieved an R² value of 0.96, indicating excellent predictive performance.
     """)
 
 # --------------------------
