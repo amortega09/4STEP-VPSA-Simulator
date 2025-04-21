@@ -150,7 +150,7 @@ with st.sidebar:
 # Show VPSA Diagram
 # --------------------------
 st.markdown("---")
-st.subheader("🧱 VPSA Process Diagram")
+st.subheader("🧱 4 Step VPSA Process Diagram")
 st.image("vpsa.drawio.png", caption="Figure: Schematic of a Vacuum Pressure Swing Adsorption (VPSA) process.", width=800)
 
 # --------------------------
