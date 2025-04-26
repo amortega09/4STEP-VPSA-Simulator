@@ -9,3 +9,15 @@ Interactive Streamlit dashboard of a 4 step VPSA process, powered through machin
 - pandas  
 - scikit-learn  
 - streamlit
+
+
+**Model Information:**
+The model is stored in the file 'final_model.pt'. Takes in 7 inputs
+- Adsorption Step Time
+- Blowdown Step Time  
+- Evacuation Step Time  
+- Adsorption Step Pressure  
+- Blowdown Step Pressure  
+- Evacuation Step Pressure
+- Feed velocity
+Feed pressurisation step is fixed at a time of 20 seconds.
