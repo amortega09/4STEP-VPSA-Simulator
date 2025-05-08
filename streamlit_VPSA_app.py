@@ -186,7 +186,7 @@ if predict_button:
 st.markdown("---")
 st.subheader("🧱 Material: Zeolite 13X")
 st.markdown("""
-The VPSA system is based on **Zeochem Zeolite 13X**, a robust and selective adsorbent commonly used for CO₂/N₂ separation.
+The VPSA system is based on **Zeolite 13X**, a robust and selective adsorbent commonly used for CO₂/N₂ separation.
 
 ### 📄 Isotherm Parameters
 
